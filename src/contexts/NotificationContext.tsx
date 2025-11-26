@@ -1,8 +1,9 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { useAuth } from './AuthContext'
 import { useNotifications } from '../hooks/useNotifications'
 import echo from '../lib/echo'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface NotificationContextType {
   unreadCount: number
@@ -16,9 +17,10 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
+  const queryClient = useQueryClient()
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications({
     unread_only: false,
-    per_page: 10,
+    per_page: 50, // Aumentar para evitar perda de notificações
   })
 
   const [realTimeNotifications, setRealTimeNotifications] = useState<any[]>([])
@@ -74,10 +76,26 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     // Escutar eventos customizados
     const handleNotification = (event: CustomEvent) => {
-      setRealTimeNotifications((prev) => [event.detail, ...prev].slice(0, 10))
-      // Recarregar notificações após 1 segundo
+      const notificationData = event.detail
+      
+      // Adicionar notificação em tempo real temporariamente
+      setRealTimeNotifications((prev) => {
+        // Evitar duplicatas no próprio estado
+        const exists = prev.some(n => n.id === notificationData.id)
+        if (exists) return prev
+        return [notificationData, ...prev].slice(0, 20)
+      })
+      
+      // Invalidar cache e recarregar notificações da API após 1 segundo
+      // Isso garante que a notificação do backend seja incluída
       setTimeout(() => {
-        window.location.reload()
+        queryClient.invalidateQueries({ queryKey: ['notifications'] })
+        queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] })
+        
+        // Limpar notificações em tempo real após sincronizar com API
+        setTimeout(() => {
+          setRealTimeNotifications([])
+        }, 2000)
       }, 1000)
     }
 
@@ -102,11 +120,42 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     window.location.reload()
   }
 
+  // Remover duplicatas baseado no ID da notificação
+  // Priorizar notificações da API (mais atualizadas) sobre as em tempo real
+  const uniqueNotifications = useMemo(() => {
+    const seenIds = new Set<number>()
+    const result: any[] = []
+    
+    // Primeiro adicionar notificações da API (mais confiáveis e atualizadas)
+    notifications.forEach((notification) => {
+      if (notification.id && !seenIds.has(notification.id)) {
+        seenIds.add(notification.id)
+        result.push(notification)
+      }
+    })
+    
+    // Depois adicionar notificações em tempo real que ainda não estão na API
+    // (útil enquanto a API ainda não sincronizou)
+    realTimeNotifications.forEach((notification) => {
+      if (notification.id && !seenIds.has(notification.id)) {
+        seenIds.add(notification.id)
+        result.push(notification)
+      }
+    })
+    
+    // Ordenar por data de criação (mais recentes primeiro)
+    return result.sort((a, b) => {
+      const dateA = new Date(a.created_at || 0).getTime()
+      const dateB = new Date(b.created_at || 0).getTime()
+      return dateB - dateA
+    })
+  }, [notifications, realTimeNotifications])
+
   return (
     <NotificationContext.Provider
       value={{
         unreadCount,
-        notifications: [...realTimeNotifications, ...notifications],
+        notifications: uniqueNotifications,
         markAsRead,
         markAllAsRead,
         refreshNotifications,
