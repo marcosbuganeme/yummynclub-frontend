@@ -119,10 +119,22 @@ export function AddressSelector({
 
   // Inicializar PlaceAutocompleteElement quando a API estiver carregada
   useEffect(() => {
-    if (!isLoaded || placeAutocompleteRef.current) return
+    if (!isLoaded) return
+    
+    // Verificar se já existe um elemento criado
+    const container = document.getElementById('place-autocomplete-container')
+    if (!container) return
+    
+    // Se já existe um elemento, não criar outro
+    if (placeAutocompleteRef.current || container.querySelector('gmp-place-autocomplete')) {
+      return
+    }
 
     const initPlaceAutocomplete = async () => {
       try {
+        // Limpar container antes de criar novo elemento
+        container.innerHTML = ''
+
         // Importar a biblioteca places se necessário
         if (window.google?.maps?.importLibrary) {
           await window.google.maps.importLibrary('places')
@@ -144,115 +156,106 @@ export function AddressSelector({
           componentRestrictions: { country: 'br' },
         } as google.maps.places.PlaceAutocompleteElementOptions)
 
-        // Estilizar o elemento
+        // Estilizar o elemento - CSS principal está no index.css globalmente
         placeAutocompleteEl.style.width = '100%'
-        placeAutocompleteEl.style.height = '40px'
-        placeAutocompleteEl.style.padding = '8px 12px'
-        placeAutocompleteEl.style.border = '1px solid hsl(var(--input))'
-        placeAutocompleteEl.style.borderRadius = 'calc(var(--radius) - 2px)'
-        placeAutocompleteEl.style.backgroundColor = 'hsl(var(--background))'
-        placeAutocompleteEl.style.fontSize = '14px'
-        placeAutocompleteEl.style.color = 'hsl(var(--foreground))'
+        placeAutocompleteEl.style.minHeight = '52px'
         placeAutocompleteEl.setAttribute('placeholder', 'Digite o endereço...')
 
         // Adicionar ao DOM
-        const container = document.getElementById('place-autocomplete-container')
-        if (container) {
-          container.appendChild(placeAutocompleteEl)
-          placeAutocompleteRef.current = placeAutocompleteEl
+        container.appendChild(placeAutocompleteEl)
+        placeAutocompleteRef.current = placeAutocompleteEl
 
-          // Adicionar listener para capturar seleção
-          placeAutocompleteEl.addEventListener('gmp-select', async (event: Event) => {
-            try {
-              setIsLoading(true)
-              const placeSelectEvent = event as PlaceSelectEvent
-              
-              // Converter placePrediction para Place
-              const place = await placeSelectEvent.placePrediction.toPlace()
-              
-              // Buscar campos necessários
-              await place.fetchFields({
-                fields: ['displayName', 'formattedAddress', 'location', 'addressComponents', 'id'],
-              })
+        // Adicionar listener para capturar seleção
+        placeAutocompleteEl.addEventListener('gmp-select', async (event: Event) => {
+          try {
+            setIsLoading(true)
+            const placeSelectEvent = event as PlaceSelectEvent
+            
+            // Converter placePrediction para Place
+            const place = await placeSelectEvent.placePrediction.toPlace()
+            
+            // Buscar campos necessários
+            await place.fetchFields({
+              fields: ['displayName', 'formattedAddress', 'location', 'addressComponents', 'id'],
+            })
 
-              if (!place.location) {
-                setIsLoading(false)
-                return
-              }
-
-              const lat = place.location.lat()
-              const lng = place.location.lng()
-
-              setMarkerPosition({ lat, lng })
-              if (map) {
-                map.setCenter({ lat, lng })
-                map.setZoom(16)
-              }
-
-              // Processar componentes de endereço
-              const addressComponents: any = {}
-              const addressComponentsArray: any[] = []
-
-              // Processar addressComponents
-              if (place.addressComponents) {
-                place.addressComponents.forEach((component: any) => {
-                  const types = component.types || []
-                  // PlaceAutocompleteElement usa longText/shortText
-                  const longText = component.longText || ''
-                  const shortText = component.shortText || ''
-
-                  addressComponentsArray.push({
-                    long_name: longText,
-                    short_name: shortText,
-                    types: types,
-                  })
-
-                  if (types.includes('street_number')) {
-                    addressComponents.street_number = longText
-                  }
-                  if (types.includes('route')) {
-                    addressComponents.street = longText
-                  }
-                  if (types.includes('sublocality') || types.includes('sublocality_level_1')) {
-                    addressComponents.neighborhood = longText
-                  }
-                  if (types.includes('administrative_area_level_2')) {
-                    addressComponents.city = longText
-                  }
-                  if (types.includes('administrative_area_level_1')) {
-                    addressComponents.state = shortText
-                  }
-                  if (types.includes('postal_code')) {
-                    addressComponents.postal_code = longText
-                  }
-                })
-              }
-
-              const newAddressData: AddressData = {
-                street: addressComponents.street || '',
-                street_number: addressComponents.street_number || '',
-                neighborhood: addressComponents.neighborhood || '',
-                city: addressComponents.city || '',
-                state: addressComponents.state || '',
-                postal_code: addressComponents.postal_code || '',
-                complement: addressData.complement,
-                reference_points: addressData.reference_points,
-                formatted_address: place.formattedAddress || place.displayName || '',
-                place_id: place.id || null,
-                address_components: addressComponentsArray.length > 0 ? addressComponentsArray : null,
-                latitude: lat,
-                longitude: lng,
-              }
-
-              setAddressData(newAddressData)
-              onChange(newAddressData)
+            if (!place.location) {
               setIsLoading(false)
-            } catch (error) {
-              console.error('Erro ao processar local selecionado:', error)
-              setIsLoading(false)
+              return
             }
-          })
-        }
+
+            const lat = place.location.lat()
+            const lng = place.location.lng()
+
+            setMarkerPosition({ lat, lng })
+            if (map) {
+              map.setCenter({ lat, lng })
+              map.setZoom(16)
+            }
+
+            // Processar componentes de endereço
+            const addressComponents: any = {}
+            const addressComponentsArray: any[] = []
+
+            // Processar addressComponents
+            if (place.addressComponents) {
+              place.addressComponents.forEach((component: any) => {
+                const types = component.types || []
+                // PlaceAutocompleteElement usa longText/shortText
+                const longText = component.longText || ''
+                const shortText = component.shortText || ''
+
+                addressComponentsArray.push({
+                  long_name: longText,
+                  short_name: shortText,
+                  types: types,
+                })
+
+                if (types.includes('street_number')) {
+                  addressComponents.street_number = longText
+                }
+                if (types.includes('route')) {
+                  addressComponents.street = longText
+                }
+                if (types.includes('sublocality') || types.includes('sublocality_level_1')) {
+                  addressComponents.neighborhood = longText
+                }
+                if (types.includes('administrative_area_level_2')) {
+                  addressComponents.city = longText
+                }
+                if (types.includes('administrative_area_level_1')) {
+                  addressComponents.state = shortText
+                }
+                if (types.includes('postal_code')) {
+                  addressComponents.postal_code = longText
+                }
+              })
+            }
+
+            const newAddressData: AddressData = {
+              street: addressComponents.street || '',
+              street_number: addressComponents.street_number || '',
+              neighborhood: addressComponents.neighborhood || '',
+              city: addressComponents.city || '',
+              state: addressComponents.state || '',
+              postal_code: addressComponents.postal_code || '',
+              complement: addressData.complement,
+              reference_points: addressData.reference_points,
+              formatted_address: place.formattedAddress || place.displayName || '',
+              place_id: place.id || null,
+              address_components: addressComponentsArray.length > 0 ? addressComponentsArray : null,
+              latitude: lat,
+              longitude: lng,
+            }
+
+            setAddressData(newAddressData)
+            onChange(newAddressData)
+            setIsLoading(false)
+          } catch (error) {
+            console.error('Erro ao processar local selecionado:', error)
+            setIsLoading(false)
+          }
+        })
       } catch (error) {
         console.error('Erro ao inicializar PlaceAutocompleteElement:', error)
       }
@@ -270,8 +273,13 @@ export function AddressSelector({
         }
         placeAutocompleteRef.current = null
       }
+      // Limpar container também para evitar duplicação
+      const container = document.getElementById('place-autocomplete-container')
+      if (container) {
+        container.innerHTML = ''
+      }
     }
-  }, [isLoaded, map, addressData.complement, addressData.reference_points, onChange])
+  }, [isLoaded]) // Apenas isLoaded como dependência para evitar recriações desnecessárias
 
   const onLoad = useCallback((map: google.maps.Map) => {
     setMap(map)
@@ -496,17 +504,23 @@ export function AddressSelector({
           {/* PlaceAutocompleteElement - Nova API do Google Maps */}
           <div className="space-y-2">
             <Label htmlFor="address-autocomplete">Buscar Endereço</Label>
-            <div className="relative">
+            <div className="relative w-full">
               <div
                 id="place-autocomplete-container"
-                className="w-full"
+                className="w-full [&_gmp-place-autocomplete]:w-full"
+                style={{
+                  minHeight: '52px',
+                }}
               />
               {isLoading && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
               )}
             </div>
+            <p className="text-xs text-muted-foreground">
+              Digite um endereço para buscar ou clique no mapa para selecionar
+            </p>
           </div>
 
           {/* Botão de localização atual */}
@@ -522,9 +536,7 @@ export function AddressSelector({
           </Button>
 
           {/* Mapa */}
-          {!mapLoaded ? (
-            <Skeleton className="h-[400px] w-full rounded-lg" />
-          ) : (
+          {isLoaded ? (
             <GoogleMap
               mapContainerStyle={mapContainerStyle}
               center={markerPosition}
@@ -538,10 +550,13 @@ export function AddressSelector({
                 streetViewControl: false,
                 mapTypeControl: false,
                 fullscreenControl: true,
+                backgroundColor: 'hsl(var(--background))',
               }}
             >
               <Marker position={markerPosition} />
             </GoogleMap>
+          ) : (
+            <Skeleton className="h-[400px] w-full rounded-lg" />
           )}
 
           {/* Campos de endereço */}
