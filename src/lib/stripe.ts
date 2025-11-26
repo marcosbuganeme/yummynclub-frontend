@@ -19,7 +19,17 @@ if (isProduction && !isSecure) {
 }
 
 // Carrega o Stripe uma única vez (fora do componente para evitar recriação)
+// Desabilita o Testing Assistant e outros elementos flutuantes
 export const stripePromise: Promise<Stripe | null> = loadStripe(
-  stripePublishableKey || ''
+  stripePublishableKey || '',
+  {
+    // Desabilitar Testing Assistant e elementos flutuantes
+    // @ts-ignore - Tipos podem não incluir todas as opções
+    developerTools: {
+      assistant: {
+        enabled: false,
+      },
+    },
+  }
 )
 

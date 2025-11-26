@@ -132,11 +132,24 @@ export default function CheckoutPage() {
         spacingUnit: '4px',
         borderRadius: '8px',
       },
+      rules: {
+        // Ocultar elementos flutuantes do Stripe
+        '.StripeElement--powered-by': {
+          display: 'none',
+        },
+      },
+    },
+    // Desabilitar elementos flutuantes
+    // @ts-ignore
+    developerTools: {
+      assistant: {
+        enabled: false,
+      },
     },
   }
 
   return (
-    <div className="px-4 py-6 sm:px-0 max-w-3xl mx-auto">
+    <div className="px-4 py-6 sm:px-0 max-w-5xl mx-auto">
       <div className="mb-6">
         <Button onClick={() => navigate('/plans')} variant="ghost" size="sm">
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -144,7 +157,7 @@ export default function CheckoutPage() {
         </Button>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-6">
         {/* Resumo do Plano */}
         <Card className="h-fit">
           <CardHeader>

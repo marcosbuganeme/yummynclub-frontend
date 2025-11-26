@@ -2,6 +2,138 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Estilos para Google Maps PlaceAutocompleteElement */
+gmp-place-autocomplete {
+  --gmpx-color-surface: hsl(var(--background)) !important;
+  --gmpx-color-on-surface: hsl(var(--foreground)) !important;
+  --gmpx-color-on-surface-variant: hsl(var(--muted-foreground)) !important;
+  --gmpx-color-primary: hsl(var(--primary)) !important;
+  --gmpx-font-family-base: inherit !important;
+  --gmpx-font-size-base: 16px !important;
+  --gmpx-font-weight-base: 400 !important;
+  width: 100% !important;
+  min-height: 52px !important;
+  display: block !important;
+}
+
+/* Estilizar o input interno do PlaceAutocompleteElement - melhorar visibilidade e área de escrita */
+gmp-place-autocomplete input,
+gmp-place-autocomplete input[type="text"],
+gmp-place-autocomplete input[type="search"],
+gmp-place-autocomplete input[type="text"]:not(:disabled),
+gmp-place-autocomplete input[type="search"]:not(:disabled) {
+  color: hsl(var(--foreground)) !important;
+  background-color: hsl(var(--background)) !important;
+  background: hsl(var(--background)) !important;
+  font-size: 16px !important;
+  line-height: 1.75 !important;
+  padding: 14px 16px !important;
+  min-height: 52px !important;
+  height: 52px !important;
+  font-family: inherit !important;
+  font-weight: 400 !important;
+  border: 1px solid hsl(var(--input)) !important;
+  border-radius: calc(var(--radius) - 2px) !important;
+  box-sizing: border-box !important;
+  -webkit-text-fill-color: hsl(var(--foreground)) !important;
+}
+
+/* Forçar cor do texto mesmo quando focado ou preenchido - CRÍTICO para visibilidade */
+gmp-place-autocomplete input:focus,
+gmp-place-autocomplete input:not(:placeholder-shown),
+gmp-place-autocomplete input[value]:not([value=""]),
+gmp-place-autocomplete input:-webkit-autofill,
+gmp-place-autocomplete input:-webkit-autofill:hover,
+gmp-place-autocomplete input:-webkit-autofill:focus,
+gmp-place-autocomplete input:-webkit-autofill:active {
+  color: hsl(var(--foreground)) !important;
+  -webkit-text-fill-color: hsl(var(--foreground)) !important;
+  background-color: hsl(var(--background)) !important;
+  background: hsl(var(--background)) !important;
+  -webkit-box-shadow: 0 0 0px 1000px hsl(var(--background)) inset !important;
+  box-shadow: 0 0 0px 1000px hsl(var(--background)) inset !important;
+}
+
+/* Garantir visibilidade do texto digitado */
+gmp-place-autocomplete input::placeholder {
+  color: hsl(var(--muted-foreground)) !important;
+  opacity: 1 !important;
+}
+
+/* Garantir que o texto digitado seja sempre visível */
+gmp-place-autocomplete input:not(:placeholder-shown) {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Forçar cor do texto mesmo quando focado */
+gmp-place-autocomplete input:focus {
+  color: hsl(var(--foreground)) !important;
+  outline: 2px solid hsl(var(--ring)) !important;
+  outline-offset: 2px !important;
+}
+
+/* Estilizar o shadow DOM do PlaceAutocompleteElement usando ::part se disponível */
+gmp-place-autocomplete::part(input-container) {
+  min-height: 48px !important;
+}
+
+/* Estilizar dropdown de sugestões */
+gmp-place-autocomplete::part(suggestions) {
+  background-color: hsl(var(--background)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: calc(var(--radius) - 2px) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+gmp-place-autocomplete::part(suggestion-item) {
+  color: hsl(var(--foreground)) !important;
+  padding: 12px 16px !important;
+}
+
+gmp-place-autocomplete::part(suggestion-item):hover {
+  background-color: hsl(var(--accent)) !important;
+}
+
+/* Garantir que o mapa tenha altura mínima */
+.gm-style {
+  min-height: 400px;
+}
+
+/* Ocultar botão flutuante do Stripe */
+.stripe-powered-by,
+[data-testid="stripe-powered-by"],
+iframe[title*="Stripe"],
+iframe[src*="stripe.com"][src*="powered"],
+div[id*="stripe-powered"],
+a[href*="stripe.com"][href*="powered"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Ocultar Testing Assistant do Stripe */
+#stripe-testing-assistant,
+.stripe-testing-assistant,
+[data-testid="stripe-testing-assistant"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Ocultar qualquer elemento flutuante do Stripe */
+div[class*="stripe"][class*="floating"],
+div[class*="stripe"][class*="badge"],
+div[class*="stripe"][class*="powered"] {
+  display: none !important;
+  visibility: hidden !important;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
